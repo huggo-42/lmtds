@@ -15,7 +15,7 @@ import (
 
 func newLmtdsCmd() *cobra.Command {
 	var migrationsPath string
-	var output string
+	var outputPath string
 
 	cmd := &cobra.Command{
 		Use:   "generate db/migrations output.txt",
@@ -23,15 +23,15 @@ func newLmtdsCmd() *cobra.Command {
 		Long:  `Parse every migration file of a given directory and every file of a subdirectory to generate the equivalent dbdiagram schema.`,
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return listFilesRecursively(migrationsPath)
+			return listFilesRecursively(migrationsPath, outputPath)
 		},
 	}
 	cmd.Flags().StringVarP(&migrationsPath, "migrations-path", "m", "database/migrations", "database migrations folder path")
-	cmd.Flags().StringVarP(&output, "output", "o", "dbdigram.txt", "output file name, ex: dbdigram.txt")
+	cmd.Flags().StringVarP(&outputPath, "output", "o", "dbdigram.txt", "output file name, ex: dbdigram.txt")
 	return cmd
 }
 
-func listFilesRecursively(migrationsPath string) error {
+func listFilesRecursively(migrationsPath, outputPath string) error {
 	return filepath.WalkDir(migrationsPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -39,11 +39,11 @@ func listFilesRecursively(migrationsPath string) error {
 		if d.IsDir() || strings.Contains(path, "charset") || strings.Contains(path, "alterar") || strings.Contains(path, "trigger") {
 			return nil
 		}
-		return parseFile(path)
+		return parseFile(path, outputPath)
 	})
 }
 
-func parseFile(path string) error {
+func parseFile(path, outputPath string) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -152,8 +152,6 @@ func parseFile(path string) error {
 		}
 	}
 	fmt.Fprintf(&dbschemaStr, "}\n")
-
-	outputPath := "dbdiagram.schema"
 
 	f, err := os.OpenFile(outputPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
